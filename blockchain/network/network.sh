@@ -18,8 +18,11 @@
 # this script is actually in and infer location from there. (putting first)
 
 ROOTDIR=$(cd "$(dirname "$0")" && pwd)
-export PATH=${ROOTDIR}/../bin:${PWD}/../bin:$PATH
-export FABRIC_CFG_PATH=${PWD}/configtx
+export PATH=${PWD}/../bin:$PATH
+export FABRIC_CFG_PATH=${PWD}/../config/
+export COMPOSE_PROJECT_NAME=gov-ledger
+# export PATH=${ROOTDIR}/../bin:${PWD}/../bin:$PATH
+# export FABRIC_CFG_PATH=${PWD}/configtx
 export VERBOSE=false
 
 # push to the required directory & set a trap to go back if needed

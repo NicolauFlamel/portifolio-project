@@ -1,1 +1,12 @@
 .env
+
+# Ignore generated crypto material
+blockchain/network/organizations/
+blockchain/network/system-genesis-block/
+blockchain/network/channel-artifacts/
+blockchain/network/log.txt
+
+# Ignore Docker volumes and build caches
+*.tar.gz
+*.block
+*.tx
