@@ -1,12 +1,36 @@
-.env
+backend/internal/docs
+
+blockchain/docker/data/
+blockchain/docker/logs/
+blockchain/docker/tmp/
 
 # Ignore generated crypto material
 blockchain/network/organizations/
 blockchain/network/system-genesis-block/
 blockchain/network/channel-artifacts/
 blockchain/network/log.txt
+blockchain/crypto-config/
+blockchain/organizations/
+blockchain/config/
+blockchain/channel-artifacts/
+blockchain/wallet/
+blockchain/msp/
+blockchain/keystore/
+blockchain/signcerts/
+blockchain/tlscacerts/
+blockchain/users/
+
+blockchain/docker/data/
+blockchain/docker/logs/
+blockchain/docker/tmp/
 
 # Ignore Docker volumes and build caches
 *.tar.gz
 *.block
-*.tx
+*.txa
+
+*.ipynb_checkpoints
+__pycache__/
+*.pyc
+venv/
+.env/

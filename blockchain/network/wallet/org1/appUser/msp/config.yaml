@@ -1,5 +1,5 @@
 NodeOUs:
   Enable: true
   ClientOUIdentifier:
-    Certificate: cacerts/localhost-7054.pem
+    Certificate: cacerts/localhost-7054-ca-org1.pem
     OrganizationalUnitIdentifier: client

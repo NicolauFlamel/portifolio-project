@@ -1,23 +1,22 @@
 package api
 
 import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-	"github.com/NicolauFlamel/portifolio-project-backend/internal/utils"
+    "github.com/gin-gonic/gin"
+    swaggerFiles "github.com/swaggo/files"
+    ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func RegisterRoutes(r *gin.Engine) {
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "Go backend running"})
-	})
+    h := NewHandler()
 
-	r.GET("/hash", func(c *gin.Context) {
-		data := c.Query("data")
-		hash := utils.ComputeSHA256(data)
-		c.JSON(http.StatusOK, gin.H{
-			"input": data,
-			"hash":  hash,
-		})
-	})
+    // Swagger UI
+    r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+    // Health
+    r.GET("/health", h.Health)
+
+    // Documents
+    r.GET("/api/docs", h.GetAllDocs)
+    r.GET("/api/docs/:id", h.GetDoc)
+    r.POST("/api/docs", h.CreateDoc)
 }
