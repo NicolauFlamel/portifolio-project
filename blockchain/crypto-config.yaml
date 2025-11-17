@@ -1,0 +1,23 @@
+OrdererOrgs:
+  - Name: UnionOrderer
+    Domain: union.gov
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer
+        SANS:
+          - localhost
+          - orderer.union.gov
+          - 127.0.0.1
+
+PeerOrgs:
+  - Name: Union
+    Domain: union.gov
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+        - peer0.union.gov
+        - 127.0.0.1
+    Users:
+      Count: 1

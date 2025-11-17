@@ -1,36 +1,48 @@
-backend/internal/docs
+# ----------------------------------------------------------
+# PRIVATE KEYS AND CERTIFICATES
+# ----------------------------------------------------------
 
-blockchain/docker/data/
-blockchain/docker/logs/
-blockchain/docker/tmp/
+organizations/ordererOrganizations/
+organizations/peerOrganizations/
+organizations/fabric-ca/
 
-# Ignore generated crypto material
-blockchain/network/organizations/
-blockchain/network/system-genesis-block/
-blockchain/network/channel-artifacts/
-blockchain/network/log.txt
-blockchain/crypto-config/
-blockchain/organizations/
-blockchain/config/
-blockchain/channel-artifacts/
-blockchain/wallet/
-blockchain/msp/
-blockchain/keystore/
-blockchain/signcerts/
-blockchain/tlscacerts/
-blockchain/users/
+# organizations/ folder
+organizations/
 
-blockchain/docker/data/
-blockchain/docker/logs/
-blockchain/docker/tmp/
+# ----------------------------------------------------------
+# 🧱 CHANNEL ARTIFACTS
+# ----------------------------------------------------------
+channel-artifacts/
+configtx/*.pb
+configtx/*.block
+configtx/*.tx
 
-# Ignore Docker volumes and build caches
+# Docker build artifacts
 *.tar.gz
-*.block
-*.txa
 
-*.ipynb_checkpoints
-__pycache__/
-*.pyc
-venv/
-.env/
+# Docker internal volumes (peer/orderer ledger + state)
+peer0.union.gov/
+orderer.union.gov/
+ca.union.gov/
+*/production/
+
+# ----------------------------------------------------------
+# FABRIC BINARIES
+# ----------------------------------------------------------
+bin/
+fabric-samples/
+crypto-config/
+config/
+chaincode/transfer/vendor/
+
+# ----------------------------------------------------------
+# CHAINCODE BUILD OUTPUTS (Golang)
+# ----------------------------------------------------------
+chaincode/**/build/
+
+# ----------------------------------------------------------
+#  SCRIPTS AND LOCAL CONFIG
+# ----------------------------------------------------------
+*.log
+*.tmp
+.env
