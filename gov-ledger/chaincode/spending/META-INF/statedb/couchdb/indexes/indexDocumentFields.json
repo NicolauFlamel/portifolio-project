@@ -1,0 +1,15 @@
+{
+  "index": {
+    "fields": [
+      "organizationId",
+      "documentTypeId",
+      "status",
+      "linkedDirection",
+      "amount",
+      "createdAt"
+    ]
+  },
+  "ddoc": "indexDocumentFieldsDoc",
+  "name": "indexDocumentFields",
+  "type": "json"
+}

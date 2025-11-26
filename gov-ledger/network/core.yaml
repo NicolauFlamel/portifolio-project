@@ -1,0 +1,162 @@
+# Core configuration for Fabric peer CLI
+# This file provides minimal configuration needed for CLI operations
+
+peer:
+  tls:
+    enabled: true
+    clientAuthRequired: false
+    cert:
+      file: 
+    key:
+      file:
+    rootcert:
+      file:
+    clientRootCAs:
+      files: []
+    clientKey:
+      file:
+    clientCert:
+      file:
+
+  # BCCSP (Blockchain Crypto Service Provider)
+  BCCSP:
+    Default: SW
+    SW:
+      Hash: SHA2
+      Security: 256
+      FileKeyStore:
+        KeyStore:
+    PKCS11:
+      Library:
+      Label:
+      Pin:
+      Hash:
+      Security:
+
+  # MSP config
+  mspConfigPath: msp
+  localMspId: SampleOrg
+
+  # File system path
+  fileSystemPath: /var/hyperledger/production
+
+  # Event service
+  events:
+    address: 0.0.0.0:7053
+    buffersize: 100
+    timeout: 10ms
+    timewindow: 15m
+    keepalive:
+      minInterval: 60s
+
+  # Handler configuration
+  handlers:
+    authFilters:
+      - name: DefaultAuth
+      - name: ExpirationCheck
+    decorators:
+      - name: DefaultDecorator
+    endorsers:
+      escc:
+        name: DefaultEndorsement
+    validators:
+      vscc:
+        name: DefaultValidation
+
+  # Discovery
+  discovery:
+    enabled: true
+    authCacheEnabled: true
+    authCacheMaxSize: 1000
+    authCachePurgeRetentionRatio: 0.75
+    orgMembersAllowedAccess: false
+
+  # Limits
+  limits:
+    concurrency:
+      endorserService: 2500
+      deliverService: 2500
+      gatewayService: 500
+
+# VM (chaincode execution) configuration
+vm:
+  endpoint: unix:///var/run/docker.sock
+  docker:
+    tls:
+      enabled: false
+    attachStdout: false
+    hostConfig:
+      NetworkMode: host
+      Dns:
+      LogConfig:
+        Type: json-file
+        Config:
+          max-size: "50m"
+          max-file: "5"
+      Memory: 2147483648
+
+# Chaincode configuration
+chaincode:
+  id:
+    path:
+    name:
+  builder: $(DOCKER_NS)/fabric-ccenv:$(TWO_DIGIT_VERSION)
+  pull: false
+  golang:
+    runtime: $(DOCKER_NS)/fabric-baseos:$(TWO_DIGIT_VERSION)
+    dynamicLink: false
+  java:
+    runtime: $(DOCKER_NS)/fabric-javaenv:$(TWO_DIGIT_VERSION)
+  node:
+    runtime: $(DOCKER_NS)/fabric-nodeenv:$(TWO_DIGIT_VERSION)
+  externalBuilders: []
+  installTimeout: 300s
+  startuptimeout: 300s
+  executetimeout: 30s
+  mode: net
+  keepalive: 0
+  system:
+    _lifecycle: enable
+    cscc: enable
+    lscc: enable
+    qscc: enable
+  logging:
+    level: info
+    shim: warning
+    format: '%{color}%{time:2006-01-02 15:04:05.000 MST} [%{module}] %{shortfunc} -> %{level:.4s} %{id:03x}%{color:reset} %{message}'
+
+# Ledger configuration  
+ledger:
+  blockchain:
+  state:
+    stateDatabase: goleveldb
+    totalQueryLimit: 100000
+    couchDBConfig:
+      couchDBAddress: 127.0.0.1:5984
+      username:
+      password:
+      maxRetries: 3
+      maxRetriesOnStartup: 10
+      requestTimeout: 35s
+      internalQueryLimit: 1000
+      maxBatchUpdateSize: 1000
+      createGlobalChangesDB: false
+      cacheSize: 64
+  history:
+    enableHistoryDatabase: true
+  pvtdataStore:
+    collElgProcMaxDbBatchSize: 5000
+    collElgProcDbBatchesInterval: 1000
+    deprioritizedDataReconcilerInterval: 60m
+  snapshots:
+    rootDir: /var/hyperledger/production/snapshots
+
+# Operations configuration
+operations:
+  listenAddress: 127.0.0.1:9443
+  tls:
+    enabled: false
+
+# Metrics configuration
+metrics:
+  provider: disabled

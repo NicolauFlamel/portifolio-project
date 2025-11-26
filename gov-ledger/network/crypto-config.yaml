@@ -1,0 +1,50 @@
+# Crypto configuration for Government Spending Blockchain
+# This file is used by cryptogen to generate MSP materials for all organizations
+# Simplified: One peer per organization for MVP
+
+OrdererOrgs:
+  - Name: Orderer
+    Domain: orderer.gov.br
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer
+        SANS:
+          - localhost
+          - 127.0.0.1
+
+PeerOrgs:
+  # Union Organization - Federal Level
+  - Name: Union
+    Domain: union.gov.br
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+        - 127.0.0.1
+    Users:
+      Count: 1
+
+  # State Organization - State Level
+  - Name: State
+    Domain: state.gov.br
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+        - 127.0.0.1
+    Users:
+      Count: 1
+
+  # Region Organization - Municipal/Regional Level
+  - Name: Region
+    Domain: region.gov.br
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+        - 127.0.0.1
+    Users:
+      Count: 1
