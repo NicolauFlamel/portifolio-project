@@ -16,7 +16,7 @@ channel-artifacts/
 configtx/*.pb
 configtx/*.block
 configtx/*.tx
-
+vendor/
 # Docker build artifacts
 *.tar.gz
 
