@@ -1,0 +1,35 @@
+# Government Spending Blockchain API Configuration
+
+server:
+  port: "3000"
+  mode: "debug"  
+
+fabric:
+  network_path: "../gov-ledger/network"
+  chaincode_name: "spending"
+  channels:
+    union:
+      name: "union-channel"
+      msp_id: "UnionMSP"
+      peer_endpoint: "localhost:7051"
+      peer_host_alias: "peer0.union.gov.br"
+      crypto_path: "peerOrganizations/union.gov.br"
+      tls_enabled: true
+    state:
+      name: "state-channel"
+      msp_id: "StateMSP"
+      peer_endpoint: "localhost:9051"
+      peer_host_alias: "peer0.state.gov.br"
+      crypto_path: "peerOrganizations/state.gov.br"
+      tls_enabled: true
+    region:
+      name: "region-channel"
+      msp_id: "RegionMSP"
+      peer_endpoint: "localhost:11051"
+      peer_host_alias: "peer0.region.gov.br"
+      crypto_path: "peerOrganizations/region.gov.br"
+      tls_enabled: true
+
+logging:
+  level: "debug"  
+  format: "console"  

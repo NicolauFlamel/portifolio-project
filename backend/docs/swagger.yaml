@@ -1,0 +1,806 @@
+basePath: /
+definitions:
+  models.AcknowledgeTransferRequest:
+    properties:
+      data:
+        additionalProperties: true
+        type: object
+      description:
+        type: string
+      documentTypeId:
+        type: string
+      sourceChannel:
+        type: string
+      sourceDocId:
+        type: string
+      title:
+        type: string
+    required:
+    - documentTypeId
+    - sourceChannel
+    - sourceDocId
+    - title
+    type: object
+  models.AnchorVerification:
+    properties:
+      amountMatch:
+        type: boolean
+      channelMatch:
+        type: boolean
+      hashMatch:
+        type: boolean
+      idMatch:
+        type: boolean
+      isValid:
+        type: boolean
+      mismatchReason:
+        items:
+          type: string
+        type: array
+      sourceAmount:
+        type: number
+      sourceChannel:
+        type: string
+      sourceCurrency:
+        type: string
+      sourceDocId:
+        type: string
+      sourceHash:
+        type: string
+      status:
+        description: '"VERIFIED" or "MISMATCH"'
+        type: string
+      targetAmount:
+        type: number
+      targetChannel:
+        type: string
+      targetCurrency:
+        type: string
+      targetDocId:
+        type: string
+      targetHash:
+        type: string
+    type: object
+  models.CreateDocumentRequest:
+    properties:
+      amount:
+        type: number
+      currency:
+        type: string
+      data:
+        additionalProperties: true
+        type: object
+      description:
+        type: string
+      documentTypeId:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+    required:
+    - documentTypeId
+    - title
+    type: object
+  models.CreateDocumentTypeRequest:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      optionalFields:
+        items:
+          type: string
+        type: array
+      requiredFields:
+        items:
+          type: string
+        type: array
+    required:
+    - id
+    - name
+    type: object
+  models.Document:
+    properties:
+      amount:
+        type: number
+      channelId:
+        type: string
+      contentHash:
+        type: string
+      correctedByDoc:
+        type: string
+      createdAt:
+        description: Audit trail
+        type: string
+      createdBy:
+        type: string
+      currency:
+        type: string
+      data:
+        additionalProperties: true
+        type: object
+      description:
+        type: string
+      documentTypeId:
+        type: string
+      history:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      invalidReason:
+        type: string
+      invalidatedAt:
+        type: string
+      invalidatedBy:
+        description: Invalidation tracking - will be empty strings if not invalidated
+        type: string
+      linkedChannel:
+        type: string
+      linkedDirection:
+        description: '"OUTGOING" or "INCOMING" or ""'
+        type: string
+      linkedDocHash:
+        type: string
+      linkedDocId:
+        description: |-
+          Cross-channel linking (simple fields instead of complex Anchor struct)
+          Will be empty strings if not set
+        type: string
+      organizationId:
+        type: string
+      status:
+        $ref: '#/definitions/models.DocumentStatus'
+      title:
+        type: string
+      updatedAt:
+        type: string
+      updatedBy:
+        type: string
+    type: object
+  models.DocumentStatus:
+    enum:
+    - ACTIVE
+    - INVALIDATED
+    type: string
+    x-enum-varnames:
+    - StatusActive
+    - StatusInvalidated
+  models.DocumentType:
+    properties:
+      createdAt:
+        type: string
+      createdBy:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      isActive:
+        type: boolean
+      name:
+        type: string
+      optionalFields:
+        items:
+          type: string
+        type: array
+      organizationId:
+        type: string
+      requiredFields:
+        items:
+          type: string
+        type: array
+    type: object
+  models.ErrorResponse:
+    properties:
+      code:
+        type: string
+      context:
+        additionalProperties: true
+        type: object
+      details:
+        type: string
+      error:
+        type: string
+      request_id:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.HistoryEntry:
+    properties:
+      document:
+        $ref: '#/definitions/models.Document'
+      isDelete:
+        type: boolean
+      timestamp:
+        type: string
+      txId:
+        type: string
+    type: object
+  models.IDResponse:
+    properties:
+      id:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.InitiateTransferRequest:
+    properties:
+      amount:
+        type: number
+      currency:
+        type: string
+      data:
+        additionalProperties: true
+        type: object
+      description:
+        type: string
+      documentTypeId:
+        type: string
+      fromChannel:
+        type: string
+      title:
+        type: string
+      toChannel:
+        type: string
+      toOrg:
+        type: string
+    required:
+    - amount
+    - documentTypeId
+    - fromChannel
+    - title
+    - toChannel
+    - toOrg
+    type: object
+  models.InvalidateDocumentRequest:
+    properties:
+      correctionDocId:
+        type: string
+      reason:
+        type: string
+    required:
+    - reason
+    type: object
+  models.LinkedDocuments:
+    properties:
+      document:
+        $ref: '#/definitions/models.Document'
+      linkVerified:
+        type: boolean
+      linkedDocument:
+        $ref: '#/definitions/models.Document'
+    type: object
+  models.QueryResult:
+    properties:
+      bookmark:
+        type: string
+      documents:
+        items:
+          $ref: '#/definitions/models.Document'
+        type: array
+      total:
+        type: integer
+    type: object
+  models.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.TransferResult:
+    properties:
+      channel:
+        type: string
+      contentHash:
+        type: string
+      id:
+        type: string
+      linkedDocChannel:
+        type: string
+      linkedDocHash:
+        type: string
+      linkedDocId:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.VerifyAnchorRequest:
+    properties:
+      sourceChannel:
+        type: string
+      sourceDocId:
+        type: string
+      targetChannel:
+        type: string
+      targetDocId:
+        type: string
+    required:
+    - sourceChannel
+    - sourceDocId
+    - targetChannel
+    - targetDocId
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: |-
+    API for managing government spending documents across Federal, State, and Municipal channels
+    Uses Hyperledger Fabric blockchain for immutable, transparent spending records
+  title: Government Spending Blockchain API
+  version: "1.0"
+paths:
+  /api/{channel}/document-types:
+    get:
+      description: Get all document types for a channel
+      parameters:
+      - description: Channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.DocumentType'
+            type: array
+      summary: List document types
+      tags:
+      - Document Types
+    post:
+      consumes:
+      - application/json
+      description: Create a new document type template with required/optional fields
+      parameters:
+      - description: Channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Document type data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateDocumentTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.IDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Register document type
+      tags:
+      - Document Types
+  /api/{channel}/document-types/{typeId}:
+    delete:
+      description: Mark document type as inactive (no new documents allowed)
+      parameters:
+      - description: Channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Document type ID
+        in: path
+        name: typeId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Deactivate document type
+      tags:
+      - Document Types
+    get:
+      description: Get specific document type by ID
+      parameters:
+      - description: Channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Document type ID
+        in: path
+        name: typeId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.DocumentType'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get document type
+      tags:
+      - Document Types
+  /api/{channel}/documents:
+    get:
+      description: Search and filter documents with pagination
+      parameters:
+      - description: Channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Filter by organization
+        in: query
+        name: organizationId
+        type: string
+      - description: Filter by document type
+        in: query
+        name: documentTypeId
+        type: string
+      - description: Filter by status (ACTIVE, INVALIDATED)
+        enum:
+        - ACTIVE
+        - INVALIDATED
+        in: query
+        name: status
+        type: string
+      - description: From date (ISO 8601)
+        in: query
+        name: fromDate
+        type: string
+      - description: To date (ISO 8601)
+        in: query
+        name: toDate
+        type: string
+      - description: Minimum amount
+        in: query
+        name: minAmount
+        type: number
+      - description: Maximum amount
+        in: query
+        name: maxAmount
+        type: number
+      - description: Has linked document
+        in: query
+        name: hasLinkedDoc
+        type: boolean
+      - description: Link direction
+        enum:
+        - OUTGOING
+        - INCOMING
+        in: query
+        name: linkedDirection
+        type: string
+      - default: 20
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      - description: Pagination bookmark
+        in: query
+        name: bookmark
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.QueryResult'
+      summary: Query documents
+      tags:
+      - Documents
+    post:
+      consumes:
+      - application/json
+      description: Create a new spending document (contractor payment, equipment,
+        etc.)
+      parameters:
+      - description: Channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Document data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateDocumentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Document'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Create document
+      tags:
+      - Documents
+  /api/{channel}/documents/{docId}:
+    get:
+      description: Get specific document by ID with all details
+      parameters:
+      - description: Channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Document ID
+        in: path
+        name: docId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Document'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get document
+      tags:
+      - Documents
+  /api/{channel}/documents/{docId}/history:
+    get:
+      description: Get complete transaction history for a document (all versions)
+      parameters:
+      - description: Channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Document ID
+        in: path
+        name: docId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.HistoryEntry'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get document history
+      tags:
+      - Documents
+  /api/{channel}/documents/{docId}/invalidate:
+    post:
+      consumes:
+      - application/json
+      description: Mark document as invalid (immutable - never deleted). Used for
+        error correction.
+      parameters:
+      - description: Channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Document ID
+        in: path
+        name: docId
+        required: true
+        type: string
+      - description: Invalidation reason and correction doc
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.InvalidateDocumentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Only creating organization can invalidate
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Invalidate document
+      tags:
+      - Documents
+  /api/{channel}/documents/{docId}/linked:
+    get:
+      description: Get document and its cross-channel linked document (if any)
+      parameters:
+      - description: Channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Document ID
+        in: path
+        name: docId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.LinkedDocuments'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get document with linked document
+      tags:
+      - Documents
+  /api/{channel}/transfers/acknowledge:
+    post:
+      consumes:
+      - application/json
+      description: Acknowledge a received cross-channel transfer. Creates linked document
+        on target channel.
+      parameters:
+      - description: Target channel (union, state, region)
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Acknowledgment details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AcknowledgeTransferRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.TransferResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Acknowledge transfer
+      tags:
+      - Transfers
+  /api/anchors/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verify that two documents are properly linked across channels using
+        cryptographic hashes
+      parameters:
+      - description: Source and target document info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.VerifyAnchorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AnchorVerification'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Verify cross-channel link
+      tags:
+      - Verification
+  /api/transfers/initiate:
+    post:
+      consumes:
+      - application/json
+      description: Start an inter-government transfer (e.g., Federal → State). Creates
+        document with cryptographic hash.
+      parameters:
+      - description: Transfer details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.InitiateTransferRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.TransferResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Initiate cross-channel transfer
+      tags:
+      - Transfers
+  /health:
+    get:
+      description: Check if the API is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'status: healthy'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - Health
+swagger: "2.0"
+tags:
+- description: Health check endpoints
+  name: Health
+- description: Manage document type templates
+  name: Document Types
+- description: Create and query spending documents
+  name: Documents
+- description: Cross-channel inter-government transfers
+  name: Transfers
+- description: Verify cross-channel links
+  name: Verification
