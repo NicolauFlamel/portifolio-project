@@ -1,108 +1,196 @@
 # Gestão Orçamentária Pública com Blockchain
 Transparência • Auditoria • Rastreabilidade • Imutabilidade
 
-Este repositório contém o sistema desenvolvido como projeto acadêmico para garantir transparência, integridade e auditoria nos dados públicos entre União, Estados e Municípios, utilizando Hyperledger Fabric, Go (Gin) e Next.js.
+Este repositório contém o sistema desenvolvido como projeto acadêmico para garantir transparência, integridade e auditoria nos dados públicos entre União, Estados e Regiões (agrupamentos de municípios), utilizando Hyperledger Fabric e Go (Gin).
 
-Embora o foco inicial seja auditoria de repasses financeiros, a arquitetura foi projetada para registrar e validar qualquer documento governamental estruturado em JSON — incluindo licitações, contratos, convênios, relatórios e prestações de contas.
+## Contexto
 
-Assim, o sistema funciona como uma camada de verificação e integridade sobre sistemas públicos já existentes, sem substituí-los.
+A gestão e a fiscalização das despesas públicas brasileiras ainda enfrentam limitações estruturais relacionadas à centralização, falta de garantias criptográficas e problemas de atualização dos dados. Embora o Portal da Transparência consolide informações federais em um sistema centralizado, o próprio governo reconhece que os dados não são atualizados em tempo real, podendo haver defasagem temporal entre a ocorrência dos gastos e sua disponibilização pública. Além disso, o portal não oferece garantias de imutabilidade, já que não utiliza tecnologias como blockchain; os dados podem ser alterados nos sistemas de origem sem que haja um mecanismo público de prova criptográfica que assegure sua integridade histórica
+(Fonte: Portal da Transparência do Governo Federal — https://portaldatransparencia.gov.br/despesas/lista-consultas).
 
-A documentação completa está disponível em:
+O Tribunal de Contas da União reforça esses desafios ao registrar que órgãos públicos frequentemente removem ou deixam de atualizar informações essenciais, prejudicando diretamente a transparência ativa e dificultando o controle social. Segundo o TCU, “órgãos públicos e servidores indevidamente removem ou não mantêm atualizadas informações essenciais para a transparência ativa”, o que compromete a confiabilidade e a completude dos dados disponibilizados à sociedade
+(Fonte: TCU — https://portal.tcu.gov.br/imprensa/noticias/falta-de-publicidade-pelos-orgaos-publicos-diminui-transparencia-e-dificulta-controle-social).
 
-- 📘 [1 — Visão Geral]
-- 🧱 [2 — Arquitetura do Sistema]
-- 🏗️ [3 — Arquitetura da Blockchain]
-- 🧩 [4 — Diagramas C4]
-- 📋 [5 — Requisitos Funcionais]
-- 📁 [6 — Estrutura do Repositório]
-- 🚀 [7 — Guia de Deploy]
-- 🛠 [8 — Tecnologias Utilizadas]
+Esses problemas evidenciam que, apesar dos avanços institucionais, a arquitetura atual da transparência pública carece de mecanismos robustos de integridade, rastreabilidade e sincronização, sobretudo quando envolve a interação entre União, Estados e Municípios — cada qual operando sistemas próprios. Nesse contexto, uma infraestrutura blockchain pode atuar como uma camada adicional de segurança e confiabilidade, garantindo imutabilidade criptográfica, registro distribuído e verificação independente dos repasses e execuções orçamentárias, fortalecendo o controle social e reduzindo riscos de inconsistências ou manipulação de dados.
 
-# 1. Visão Geral
+## Requisitos Funcionais
+### RF001 - Gerenciamento de Tipos de Documento
 
-Os sistemas públicos brasileiros sofrem com fragmentação estrutural: União, Estados e Municípios operam com bancos de dados isolados, modelos próprios de gestão e aplicações que não se comunicam entre si. Essa falta de integração causa:
-- divergências entre dados de diferentes esferas,´
-- atrasos e inconsistências nos repasses
-- dificuldade de auditoria
-- ausência de rastreabilidade confiável
-- risco de adulteração ou perda de integridade
-- falta de transparência para o cidadão e para órgãos de controle
+Descrição: O sistema deve permitir o cadastro, consulta e desativação de tipos de documentos que servem como templates para os registros de gastos.
+Critérios de Aceitação:
 
-Esses problemas não decorrem apenas de falhas humanas, mas de uma arquitetura governamental onde cada esfera mantém sistemas centralizados e desconectados, dificultando verificações cruzadas e auditorias independentes.
+- Deve ser possível criar um tipo de documento com campos obrigatórios e opcionais
+- Cada tipo de documento deve ter ID único, nome e descrição
+- Deve ser possível listar todos os tipos de documento de um canal
+- Deve ser possível consultar um tipo de documento específico por ID
+- Deve ser possível desativar (mas não excluir) um tipo de documento
+- Tipos desativados não permitem criação de novos documentos
 
-## Objetivos
+Regras de Negócio:
 
-Diante desse cenário, este projeto propõe uma camada de integridade baseada em blockchain permissionada para unificar a verificação de dados públicos entre União, Estados e Municípios, sem substituir os sistemas atuais.
-
-A solução utiliza Hyperledger Fabric com coleções privadas, permitindo que cada esfera registre documentos estruturados (JSON) — incluindo repasses financeiros, contratos, licitações, relatórios e outros artefatos governamentais — de forma:
-- Imutável
-- Auditável
-- Assinada digitalmente
-- Privada quando necessário
-- Integrada com todas as esferas governamentais
-
-Dessa forma, o sistema resolve o problema central:
-criar um ambiente confiável de interoperabilidade e verificação entre as três esferas governamentais, eliminando divergências e restaurando a integridade compartilhada dos dados públicos.
-
-# 2. Arquitetura do Sistema
-
-A arquitetura do sistema adota o modelo client–server integrado a uma blockchain permissionada. Ela é composta por três camadas principais: Frontend, Backend e Hyperledger Fabric. Cada uma desempenha um papel específico e desacoplado, garantindo organização, segurança e evolutividade do projeto.
-
-## 2.1 Visão Geral em Camadas
-
-A comunicação segue fluxo descendente:
-
-**TODO= DIAGRAMA GERAL**
-
-1. O usuário interage com o frontend
-2. O frontend envia requisições ao backend via API REST
-3. O backend realiza validações, autenticação, hashing e encaminha a operação para a blockchain através do Fabric SDK
-4. O Hyperledger Fabric executa as regras do chaincode e persiste dados públicos ou privados conforme as coleções definidas
-
-## 2.2 Frontend
-
-O frontend é responsável por:
-- Oferecer uma interface clara para auditores e servidores públicos,
-- Exibir repasses, documentos, inconsistências e histórico,
-- Realizar chamadas seguras ao backend,
-- Organizar filtros, buscas e dashboards.
-
-Características:
-- Totalmente desacoplado do Fabric
-- Não possui lógica de negócio sensível
-- Não acessa o blockchain diretamente
-- Interage exclusivamente via API REST
-
-## 2.3 Backend (Go + Gin)
-
-O backend atua como gateway, validador de neg[ocios e cliente oficial da blockchain. Responsabilidades incluem:
-- API REST:
-  - Rotas para criação e consulta de documentos e repasses
-  - Autenticação/autorização (se aplicável)
-  - Respostas padronizadas no formato JSON
-  - Documentação dos endpoints no Swagger
-- Lógica de Negócio:
-  - Validações pré-transação
-  - Versões de documentos
-  - Tipo de documento (financeiro, licitação, relatório, etc)
-  - Seleção automática da coleção privada correta
-  - Hashing e auditoria
-- Comunicação com Fabric via SDK:
-  - Submit/evaluate de transactions
-  - Envio de JSONs
-  - Acesso a coleções privadas
-  - Tratamento de endorsements e erros
-
-## 2.4 Blockchain
-
-A camada blockchain é responsável por:
-- Imutabilidade
-- Auditoria
-- Validação de transações
-- Verificação de assinaturas
-- Execução de chaincode determinístico
- 
-
-# 3. Arquitetura Blockchain
+- RN001: ID do tipo de documento deve ser único no canal
+- RN002: Tipos de documento são específicos de cada canal (não compartilhados)
+- RN003: Campos obrigatórios devem estar presentes em todos os documentos deste tipo
 
 
+### RF002 - Criação de Documentos de Gasto
+Descrição: O sistema deve permitir a criação de documentos representando gastos governamentais (contratos, equipamentos, transferências, etc.).
+Critérios de Aceitação:
+
+- Deve ser possível criar documento informando tipo, título, valor e dados customizados
+- Sistema deve gerar ID único automaticamente se não fornecido
+- Sistema deve calcular hash criptográfico (SHA-256) do conteúdo
+- Documento deve registrar organização criadora, data e usuário
+- Documento deve iniciar com status ACTIVE
+- Sistema deve validar campos obrigatórios do tipo de documento
+
+Regras de Negócio:
+
+- RN004: Tipo de documento deve existir e estar ativo
+- RN005: Campos obrigatórios do tipo devem estar presentes em data
+- RN006: Hash do conteúdo (contentHash) é calculado automaticamente
+- RN007: Documento criado em um canal só pode ser modificado pela organização criadora
+
+
+### RF003 - Consulta de Documentos
+Descrição: O sistema deve permitir consultas e filtros sobre os documentos de gasto.
+Critérios de Aceitação:
+
+- Deve ser possível consultar documento específico por ID
+- Deve ser possível listar documentos com filtros:
+
+  - Por tipo de documento
+  - Por status (ACTIVE, INVALIDATED)
+  - Por intervalo de datas
+  - Por intervalo de valores
+  - Por presença de documento vinculado
+  - Por direção do vínculo (OUTGOING, INCOMING)
+
+- Consultas devem suportar paginação
+- Sistema deve retornar bookmark para próxima página
+
+Regras de Negócio:
+
+- RN008: Qualquer organização pode consultar documentos (transparência)
+- RN009: Consultas retornam apenas documentos do canal especificado
+- RN010: Paginação padrão de 20 documentos por página
+
+
+### RF004 - Histórico de Documentos
+Descrição: O sistema deve manter e permitir consulta do histórico completo de alterações de um documento.
+Critérios de Aceitação:
+
+- Deve ser possível consultar histórico completo de um documento
+- Histórico deve incluir todas as versões do documento
+- Cada entrada deve conter: ID da transação, timestamp, dados do documento
+- Flag isDelete deve indicar se foi operação de exclusão (sempre false neste sistema)
+
+Regras de Negócio:
+
+- RN011: Histórico é imutável e completo (blockchain)
+- RN012: Não há operações de exclusão, apenas invalidação
+- RN013: Histórico preserva todas as versões anteriores
+
+
+### RF005 - Invalidação de Documentos
+Descrição: O sistema deve permitir invalidar documentos para correção de erros, mantendo registro completo.
+Critérios de Aceitação:
+
+- Deve ser possível invalidar documento informando motivo
+- Deve ser possível vincular documento de correção
+- Sistema deve atualizar status para INVALIDATED
+- Sistema deve registrar quem invalidou, quando e por quê
+- Documento original deve permanecer visível no blockchain
+
+Regras de Negócio:
+
+- RN014: Apenas organização criadora pode invalidar documento
+- RN015: Motivo da invalidação é obrigatório
+- RN016: Documento invalidado permanece no blockchain (imutabilidade)
+- RN017: Documento de correção pode ser referenciado opcionalmente
+- RN018: Consultas padrão podem filtrar documentos invalidados
+
+
+### RF006 - Transferências Entre Canais (Cross-Channel)
+Descrição: O sistema deve permitir registrar transferências de recursos entre níveis governamentais (Federal → Estadual → Municipal).
+Critérios de Aceitação:
+
+- Deve ser possível iniciar transferência especificando canal origem, destino e organização destino
+- Sistema deve criar documento no canal origem com hash criptográfico
+- Documento deve marcar direção como OUTGOING
+- Deve ser possível reconhecer transferência no canal destino
+- Sistema deve criar documento no canal destino vinculando ao documento origem
+- Documento destino deve copiar hash do documento origem (âncora)
+- Documento destino deve marcar direção como INCOMING
+
+Regras de Negócio:
+
+- RN019: Transferência cria dois documentos: um no canal origem, outro no destino
+- RN020: Hash do documento origem é copiado para linkedDocHash do documento destino
+- RN021: Organização de origem aprova sua saída (OUTGOING)
+- RN022: Organização de destino aprova sua entrada (INCOMING)
+- RN023: Valores devem ser iguais para verificação ser válida
+- RN024: Cada organização só pode criar documentos em seu próprio canal
+
+
+### RF007 - Verificação de Âncoras (Cross-Channel)
+Descrição: O sistema deve permitir verificação criptográfica de vínculos entre documentos em canais diferentes.
+Critérios de Aceitação:
+
+- Deve ser possível verificar vínculo entre dois documentos
+- Sistema deve comparar hashes dos documentos
+- Sistema deve validar referências cruzadas (IDs e canais)
+- Sistema deve validar valores e moedas
+- Sistema deve retornar resultado detalhado da verificação
+
+Regras de Negócio:
+
+- RN025: Verificação compara contentHash do origem com linkedDocHash do destino
+- RN026: Verificação valida: hashes, IDs, canais e valores
+- RN027: Status VERIFIED se todos os critérios atenderem
+- RN028: Status MISMATCH se qualquer critério falhar
+- RN029: Motivos de falha devem ser listados claramente
+
+
+### RF008 - Consulta de Documentos Vinculados
+Descrição: O sistema deve permitir consultar um documento junto com seu documento vinculado em outro canal.
+Critérios de Aceitação:
+
+- Deve ser possível consultar documento com seu vínculo cross-channel
+- Sistema deve retornar documento principal
+- Sistema deve retornar documento vinculado (se existir)
+- Sistema deve indicar se vínculo está verificado
+
+Regras de Negócio:
+
+- RN030: Se documento não possui vínculo, linkedDocument retorna null
+- RN031: Sistema valida vínculo automaticamente ao retornar
+
+
+### RF009 - Health Check e Monitoramento
+Descrição: O sistema deve fornecer endpoint para verificação de saúde.
+Critérios de Aceitação:
+
+- Endpoint /health deve retornar status do serviço
+- Resposta deve indicar se API está operacional
+
+Regras de Negócio:
+
+- RN032: Endpoint público, sem autenticação
+- RN033: Retorna 200 OK se sistema está saudável
+
+
+### RF010 - Rastreamento de Requisições
+Descrição: O sistema deve gerar ID único para cada requisição HTTP para rastreamento.
+Critérios de Aceitação:
+
+- Cada requisição deve receber ID único (request_id)
+- Request ID deve ser retornado nas respostas de erro
+- Request ID deve aparecer nos logs estruturados
+- Request ID deve permitir correlação de logs
+
+Regras de Negócio:
+
+- RN034: Request ID gerado no formato timestamp-uuid
+- RN035: Todas as respostas de erro incluem request_id
+- RN036: Logs estruturados incluem request_id para rastreamento
