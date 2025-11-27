@@ -52,20 +52,16 @@ type Document struct {
 	Data           map[string]interface{} `json:"data"`
 	ContentHash    string                 `json:"contentHash"`
 
-	// Cross-channel linking (simple fields instead of complex Anchor struct)
-	// Will be empty strings if not set
 	LinkedDocID     string `json:"linkedDocId"`
 	LinkedChannel   string `json:"linkedChannel"`
 	LinkedDocHash   string `json:"linkedDocHash"`
-	LinkedDirection string `json:"linkedDirection"` // "OUTGOING" or "INCOMING" or ""
+	LinkedDirection string `json:"linkedDirection"`
 
-	// Invalidation tracking - will be empty strings if not invalidated
 	InvalidatedBy  string `json:"invalidatedBy"`
 	InvalidatedAt  string `json:"invalidatedAt"`
 	InvalidReason  string `json:"invalidReason"`
 	CorrectedByDoc string `json:"correctedByDoc"`
 
-	// Audit trail
 	CreatedAt string   `json:"createdAt"`
 	CreatedBy string   `json:"createdBy"`
 	UpdatedAt string   `json:"updatedAt"`
