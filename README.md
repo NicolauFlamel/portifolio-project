@@ -3,7 +3,7 @@ Transparência • Auditoria • Rastreabilidade • Imutabilidade
 
 Este repositório contém o sistema desenvolvido como projeto acadêmico para garantir transparência, integridade e auditoria nos dados públicos entre União, Estados e Regiões (agrupamentos de municípios), utilizando Hyperledger Fabric e Go (Gin).
 
-## Contexto
+## 1. Contexto
 
 A gestão e a fiscalização das despesas públicas brasileiras ainda enfrentam limitações estruturais relacionadas à centralização, falta de garantias criptográficas e problemas de atualização dos dados. Embora o Portal da Transparência consolide informações federais em um sistema centralizado, o próprio governo reconhece que os dados não são atualizados em tempo real, podendo haver defasagem temporal entre a ocorrência dos gastos e sua disponibilização pública. Além disso, o portal não oferece garantias de imutabilidade, já que não utiliza tecnologias como blockchain; os dados podem ser alterados nos sistemas de origem sem que haja um mecanismo público de prova criptográfica que assegure sua integridade histórica
 (Fonte: Portal da Transparência do Governo Federal — https://portaldatransparencia.gov.br/despesas/lista-consultas).
@@ -13,7 +13,7 @@ O Tribunal de Contas da União reforça esses desafios ao registrar que órgãos
 
 Esses problemas evidenciam que, apesar dos avanços institucionais, a arquitetura atual da transparência pública carece de mecanismos robustos de integridade, rastreabilidade e sincronização, sobretudo quando envolve a interação entre União, Estados e Municípios — cada qual operando sistemas próprios. Nesse contexto, uma infraestrutura blockchain pode atuar como uma camada adicional de segurança e confiabilidade, garantindo imutabilidade criptográfica, registro distribuído e verificação independente dos repasses e execuções orçamentárias, fortalecendo o controle social e reduzindo riscos de inconsistências ou manipulação de dados.
 
-## Requisitos Funcionais
+## 2. Requisitos Funcionais
 ### RF001 - Gerenciamento de Tipos de Documento
 
 Descrição: O sistema deve permitir o cadastro, consulta e desativação de tipos de documentos que servem como templates para os registros de gastos.
@@ -194,3 +194,242 @@ Regras de Negócio:
 - RN034: Request ID gerado no formato timestamp-uuid
 - RN035: Todas as respostas de erro incluem request_id
 - RN036: Logs estruturados incluem request_id para rastreamento
+
+## 3. Casos de Uso/User Stories
+
+### US001 - Cadastrar Tipo de Documento de Pagamento a Fornecedores
+
+Como administrador do sistema federal
+
+Quero cadastrar um tipo de documento "Pagamento a Fornecedores"
+
+Para que possa registrar contratos com fornecedores seguindo template padrão
+
+Cenário Principal:
+
+- Administrador acessa API do backend federal
+- Administrador envia requisição POST /api/union/document-types
+- Sistema valida campos obrigatórios
+- Sistema cria tipo de documento no canal union-channel
+- Sistema retorna ID do tipo criado
+- Tipo de documento fica disponível para criação de documentos
+
+Critérios de Aceitação:
+
+- Tipo criado com ID "contractor-payment"
+- Campos obrigatórios: vendor, contractNumber
+- Campos opcionais: invoiceNumber, taxId
+- Tipo ativo para uso imediato
+
+Regra de Negócio Aplicada: RN001, RN002
+
+### US002 - Registrar Pagamento a Fornecedor
+Como operador financeiro federal
+
+Quero registrar pagamento de R$ 250.000 ao fornecedor Tech Solutions
+
+Para que a transação fique registrada de forma imutável no blockchain
+
+Cenário Principal:
+
+- Operador acessa API do backend federal
+- Operador envia requisição POST /api/union/documents com dados do pagamento
+- Sistema valida tipo de documento existe e está ativo
+- Sistema valida campos obrigatórios (vendor, contractNumber)
+- Sistema gera hash SHA-256 do conteúdo
+- Sistema cria documento no union-channel
+- Sistema retorna ID e hash do documento
+- Documento fica disponível para consulta
+
+Critérios de Aceitação:
+
+- Documento criado com status ACTIVE
+- ContentHash gerado automaticamente
+- Campos vendor e contractNumber presentes
+- Registro inclui createdBy (Admin@union.gov.br)
+- Documento não pode ser excluído
+
+Regra de Negócio Aplicada: RN004, RN005, RN006, RN007
+
+### US003 - Consultar Contratos de Alto Valor
+Como auditor
+
+Quero consultar todos os contratos acima de R$ 200.000
+
+Para que possa analisar gastos de alto valor
+
+Cenário Principal:
+
+- Auditor acessa API pública
+- Auditor envia requisição GET /api/union/documents?minAmount=200000
+- Sistema busca documentos no blockchain que atendem filtro
+- Sistema retorna lista de documentos ordenados
+- Sistema inclui bookmark para paginação
+
+Critérios de Aceitação:
+
+- Apenas documentos com amount >= 200000 retornados
+- Documentos incluem todos os dados (tipo, valor, vendor, etc)
+- Paginação com 20 documentos por padrão
+- Bookmark permite buscar próxima página
+
+Regra de Negócio Aplicada: RN008, RN009, RN010
+
+### US004 - Corrigir Erro em Documento
+Como administrador federal
+
+Quero corrigir documento com valor errado (R$ 500K em vez de R$ 550K)
+
+Para que o valor correto fique registrado mantendo histórico da correção
+
+Cenário Principal:
+
+- Administrador cria novo documento com valor correto (R$ 550K)
+- Sistema retorna ID do documento de correção
+- Administrador envia requisição POST /api/union/documents/{id-errado}/invalidate
+- Administrador informa motivo e ID do documento de correção
+- Sistema valida que apenas organização criadora pode invalidar
+- Sistema atualiza documento original para INVALIDATED
+- Sistema registra motivo, data, usuário e link para correção
+- Documento original permanece visível com status INVALIDATED
+
+Critérios de Aceitação:
+
+- Documento original permanece no blockchain
+- Status alterado para INVALIDATED
+- Motivo da invalidação registrado
+- Link para documento de correção presente
+- Timestamp e usuário que invalidou registrados
+- Histórico completo preservado
+
+Regra de Negócio Aplicada: RN014, RN015, RN016, RN017
+
+### US005 - Transferir Verba Federal para Estado
+Como administrador federal
+
+Quero transferir R$ 10 milhões para o estado de São Paulo (educação)
+
+Para que o repasse fique registrado em ambos os canais de forma verificável
+
+Cenário Principal - Parte 1: Federal Inicia:
+
+- Administrador federal acessa API federal
+- Administrador envia POST /api/transfers/initiate
+- Sistema valida campos obrigatórios
+- Sistema cria documento no union-channel
+- Sistema calcula contentHash do documento
+- Sistema marca linkedDirection como OUTGOING
+- Sistema retorna ID e hash do documento criado
+
+Cenário Principal - Parte 2: Estado Reconhece:
+
+- Administrador estadual consulta documento federal via API
+- Administrador estadual copia ID e hash do documento federal
+- Administrador envia POST /api/state/transfers/acknowledge
+- Sistema cria documento no state-channel
+- Sistema preenche linkedDocId com ID federal
+- Sistema preenche linkedDocHash com hash federal (ÂNCORA)
+- Sistema marca linkedDirection como INCOMING
+- Sistema retorna ID do documento estadual
+
+Cenário Principal - Parte 3: Verificação:
+
+- Qualquer interessado envia POST /api/anchors/verify
+- Sistema busca documento federal no union-channel
+- Sistema busca documento estadual no state-channel
+- Sistema compara contentHash federal com linkedDocHash estadual
+- Sistema compara valores, IDs e canais
+- Sistema retorna resultado VERIFIED
+
+Critérios de Aceitação:
+
+- Dois documentos criados (um em cada canal)
+- Hash do federal copiado para campo linkedDocHash do estadual
+- Valores iguais em ambos os documentos
+- Verificação retorna status VERIFIED
+- Qualquer pessoa pode verificar a âncora
+
+Regra de Negócio Aplicada: RN019, RN020, RN021, RN022, RN023, RN024, RN025
+
+### US006 - Auditor Verifica Inconsistência em Transferência
+Como auditor independente
+
+Quero verificar se transferência federal foi corretamente reconhecida pelo estado
+
+Para que possa identificar discrepâncias ou fraudes
+
+Cenário Principal - Transferência Correta:
+
+- Auditor identifica documento de transferência federal
+- Auditor identifica documento de reconhecimento estadual
+- Auditor envia POST /api/anchors/verify com ambos os IDs
+- Sistema verifica hashes são idênticos
+- Sistema verifica valores são iguais
+- Sistema retorna status VERIFIED
+
+Cenário Alternativo - Valores Divergentes:
+
+- Estado registra valor diferente do federal
+- Auditor envia verificação
+- Sistema detecta valores diferentes (10M vs 15M)
+- Sistema retorna status MISMATCH
+- Sistema lista motivo: "Amount mismatch"
+- Discrepância fica exposta publicamente
+
+Critérios de Aceitação:
+
+- Verificação identifica quando hashes não coincidem
+- Verificação identifica quando valores diferem
+- Motivos de falha são listados claramente
+- Resultado é público e verificável por qualquer um
+
+Regra de Negócio Aplicada: RN025, RN026, RN027, RN028, RN029
+
+### US007 - Consultar Histórico Completo de Documento
+Como investigador
+
+Quero ver todo o histórico de alterações de um documento
+
+Para que possa rastrear correções e mudanças de status
+
+Cenário Principal:
+
+- Investigador identifica ID do documento
+- Investigador envia GET /api/union/documents/{id}/history
+- Sistema busca histórico completo no blockchain
+- Sistema retorna todas as versões do documento
+- Cada versão inclui: timestamp, ID da transação, dados do documento
+
+Critérios de Aceitação:
+
+- Histórico inclui criação original
+- Histórico inclui invalidação (se houver)
+- Histórico em ordem cronológica
+- Cada entrada tem timestamp e ID de transação únicos
+- Flag isDelete sempre false (não há exclusões)
+
+Regra de Negócio Aplicada: RN011, RN012, RN013
+
+### US008 - Estado Consulta Documento Federal para Reconhecimento
+Como administrador estadual
+
+Quero consultar documento de transferência federal
+
+Para que possa copiar seu hash e criar reconhecimento
+
+Cenário Principal:
+
+Administrador estadual recebe notificação de transferência federal
+Administrador envia GET http://federal-api:3000/api/union/documents/{transfer-id}
+API federal retorna documento completo
+Documento inclui contentHash: "9f86d081884c..."
+Administrador usa esse hash em seu reconhecimento
+
+Critérios de Aceitação:
+
+- Estado pode ler documentos do canal federal
+- Documento retorna contentHash calculado
+- Hash pode ser copiado para linkedDocHash
+- Transparência entre níveis governamentais
+
+Regra de Negócio Aplicada: RN008, RN023
