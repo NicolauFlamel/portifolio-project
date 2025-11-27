@@ -6,6 +6,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+export PATH="$PROJECT_DIR/bin:$PATH"
 NETWORK_DIR="$PROJECT_DIR/network"
 
 RED='\033[0;31m'

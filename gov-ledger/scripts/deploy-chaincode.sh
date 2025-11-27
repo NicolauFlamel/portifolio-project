@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 NETWORK_DIR="$PROJECT_DIR/network"
 CHAINCODE_DIR="$PROJECT_DIR/chaincode/spending"
+export PATH="$PROJECT_DIR/bin:$PATH"
 
 CC_NAME="spending"
 CC_VERSION="1.0"
