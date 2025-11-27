@@ -1,3 +1,5 @@
+# BlockSpend Network
+
 Transparência • Auditoria • Rastreabilidade • Imutabilidade
 
 Este repositório contém o sistema desenvolvido como projeto acadêmico para garantir transparência, integridade e auditoria nos dados públicos entre União, Estados e Regiões (agrupamentos de municípios), utilizando Hyperledger Fabric e Go (Gin).
@@ -692,3 +694,13 @@ Controle de Acesso:
 - StateMSP escreve em state-channel
 - RegionMSP escreve em region-channel
 - Todos podem LER qualquer canal (transparência)
+
+## 5. Referências
+
+- Hyperledger Fabric Documentation: https://hyperledger-fabric.readthedocs.io/
+- Go Programming Language: https://go.dev/doc/
+- Gin Web Framework: https://gin-gonic.com/en/docs/
+- Docker Documentation: https://docs.docker.com/
+- OpenAPI Specification: https://swagger.io/specification/
+
+
