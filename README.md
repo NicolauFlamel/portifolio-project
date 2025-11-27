@@ -1,9 +1,8 @@
-# Gestão Orçamentária Pública com Blockchain
 Transparência • Auditoria • Rastreabilidade • Imutabilidade
 
 Este repositório contém o sistema desenvolvido como projeto acadêmico para garantir transparência, integridade e auditoria nos dados públicos entre União, Estados e Regiões (agrupamentos de municípios), utilizando Hyperledger Fabric e Go (Gin).
 
-## Deploy
+## Guia Rápido de Deploy
 
 Software Necessário:
 
@@ -14,6 +13,113 @@ Go 1.21
 jq
 curl
 ```
+
+### Preparação do Ambiente
+
+```bash
+git clone <repository-url>
+cd government-spending-blockchain
+
+# 2. Verificar binários do Fabric
+ls -la bin/
+# Deve conter: peer, orderer, configtxgen, cryptogen, osnadmin
+```
+
+### Iniciar Rede Blockchain
+
+**Atenção**: A blockchain foi implantada e validada em um ambiente Linux, comportamentos inexperados podem ocorrer em outros ambientes. Para executar todos os serviços da rede — incluindo peers, orderers, CAs, banco de estado e ferramentas auxiliares — recomenda-se um mínimo de 16 GB de memória RAM, garantindo estabilidade durante a inicialização e operação da infraestrutura.
+
+```bash
+cd gov-ledger
+chmod +x scripts/start-network.sh
+scripts/start-network.sh start
+
+# O script executará:
+# 1. Gerar materiais criptográficos (certificados, chaves)
+# 2. Gerar artefatos dos canais (blocos genesis)
+# 3. Iniciar containers Docker (orderer, peers, CouchDB)
+# 4. Criar canais (union-channel, state-channel, region-channel)
+# 5. Peers juntarem aos canais
+# 6. Verificar status da rede
+```
+
+Verifique se os containers foram corretamente instanciados:
+
+```bash
+docker ps
+
+# Deve listar:
+# - orderer.orderer.gov.br
+# - peer0.union.gov.br
+# - peer0.state.gov.br
+# - peer0.region.gov.br
+# - couchdb.union
+# - couchdb.state
+# - couchdb.region
+```
+
+Caso seja necessário reiniciar o processo, utilize:
+
+```bash
+# Para remover containers e volumes
+scripts/start-network.sh stop
+# Para remover artefatos gerados
+scripts/start-network.sh clean
+```
+
+### Deploy do Chaincode (Smart Contract):
+
+```bash
+chmod +x deploy-chaincode.sh
+scripts/deploy-chaincode.sh deploy
+```
+Verifique se o chaincode foi corretametne instalado:
+
+```
+docker ps | grep dev-peer
+# Deve listar 3 containers de chaincode:
+# - dev-peer0.union.gov.br-spending-1.0-...
+# - dev-peer0.state.gov.br-spending-1.0-...
+# - dev-peer0.region.gov.br-spending-1.0-.
+```
+
+### Iniciar Backend API
+
+Para os testes, uma única instância do backend é o suficiente para simular os cenários: 
+
+```bash
+# Do root, acesse a pasta backend
+cd backend
+# Execute o backend
+go run cmd/api/main.go
+```
+
+Verifique se o backend foi corretamente instanciado:
+
+```bash
+curl http://localhost:3000/health
+```
+
+### Testando a Aplicação
+
+Você pode utilizar o script para testar cenários:
+
+```
+cd gov-ledger
+chmod +x scripts/test-scenarios.sh
+scripts/test-scenarios.sh
+# O script executará 8 cenários de teste:
+# 1. Criar tipos de documento
+# 2. Criar documentos internos (contractor, equipment, utilities)
+# 3. Transferência Federal → Estadual
+# 4. Transferência Estadual → Municipal
+# 5. Verificar âncoras cross-channel
+# 6. Consultar documentos
+# 7. Invalidar documento
+# 8. Consultar histórico
+```
+
+Ou acessar o swagger disponível em http://localhost:3000/swagger/index.html.
 
 ## 1. Contexto
 
