@@ -3,6 +3,18 @@ Transparência • Auditoria • Rastreabilidade • Imutabilidade
 
 Este repositório contém o sistema desenvolvido como projeto acadêmico para garantir transparência, integridade e auditoria nos dados públicos entre União, Estados e Regiões (agrupamentos de municípios), utilizando Hyperledger Fabric e Go (Gin).
 
+## Deploy
+
+Software Necessário:
+
+```bash
+Docker Engine 20.10+
+Docker Compose 2.0+
+Go 1.21
+jq
+curl
+```
+
 ## 1. Contexto
 
 A gestão e a fiscalização das despesas públicas brasileiras ainda enfrentam limitações estruturais relacionadas à centralização, falta de garantias criptográficas e problemas de atualização dos dados. Embora o Portal da Transparência consolide informações federais em um sistema centralizado, o próprio governo reconhece que os dados não são atualizados em tempo real, podendo haver defasagem temporal entre a ocorrência dos gastos e sua disponibilização pública. Além disso, o portal não oferece garantias de imutabilidade, já que não utiliza tecnologias como blockchain; os dados podem ser alterados nos sistemas de origem sem que haja um mecanismo público de prova criptográfica que assegure sua integridade histórica
@@ -433,3 +445,144 @@ Critérios de Aceitação:
 - Transparência entre níveis governamentais
 
 Regra de Negócio Aplicada: RN008, RN023
+
+## 4. Diagrama de Arquitetura C4
+
+### Contexto (C4 Level 1)
+<img width="1406" height="638" alt="C4-L1" src="https://github.com/user-attachments/assets/31feeffe-45ca-49d0-8799-03a8f34b5e54" />
+
+### Containers (C4 Level 2)
+
+<img width="1189" height="1457" alt="hLPDR-Cs4BthLqnzSe2DvMoJjhkdtTYEjwYp5Ym7GKy6HN4L8ZAfKfJJeEYlwM61NXUzzEe_rY7rOSfAlJPQd-WXtxmtJvoHtkMQA5siKnXThaPIQC85KzutND2qY1ayQ9tbRtrVaQT1mlL34HKvKnGFCg47LAxzB2N293ZFTPpoo1zTdWScT7SxyzSarqpvRkf1XcSzR_R-v_dTShMS" src="https://github.com/user-attachments/assets/d7b16e81-1a4c-4210-84a0-9fa0bc23c70f" />
+
+### Componentes - Backend API (C4 Level 3)
+
+<img width="1165" height="2128" alt="ZLPBa-8s4BxpAnHEa5h6bptjQHd3C5JO7S8ZgPnSGku15KPo99bPDfKVa-IGgbotSicLFvQMvDTW7ZCrLSZjxkzhTRS--QCsL9bibv3mVHJANIe521FTKxO54RU-uu8bMGnaOqogFmI1eYztQsussIhJe9WK1jtlcDm5QKA51Uff4oTy5OJlUrDhMdwQ13kg3QYWJd6Nec-hDUd_yhHS" src="https://github.com/user-attachments/assets/b3d51ac4-a0ee-4be4-b423-dec3bd5e1c2f" />
+
+### Componentes - Chaincode/Smart Contract (C4 Level 3)
+
+<img width="2143" height="956" alt="dLPBRnit4BxhLx0-IK1a0KNQGq-nL_83bMlLaXtqjA2uj4IOIsxuKAm6-J5j3a4Bz1Jqakl-iGovt8UabUHM1-roEFFDyECyzeqsM1cRSXIzZYEPPb9GOU9eYPaWCg6Tx-39RKBHqfXC_pGOAFp-TC7Cqiwjfef8OS3WbCXqa74i75HVcuIp-I1wtPyuqVtDU91YRQWQD9sSPg3RwOpF" src="https://github.com/user-attachments/assets/aa7fc4c8-fa21-476d-a1d9-9097a868182b" />
+
+
+### Fluxo De Dados - Transferencia Cross-Channel
+
+Fluxo: Transferência Federal -> Estadual
+
+1. Federal inicia:
+<img width="992" height="131" alt="image" src="https://github.com/user-attachments/assets/7945a326-31d4-4a44-a69a-d0058f64d410" />
+
+Dados salvos:
+```json
+   {
+     "id": "transfer-123",
+     "amount": 10000000,
+     "contentHash": "9f86d0...",  ← SHA-256 calculado
+     "linkedDirection": "OUTGOING"
+   }
+```
+2. Estado consulta Federal:
+<img width="569" height="124" alt="image" src="https://github.com/user-attachments/assets/76ea1f31-f91e-4b12-8050-313ed11df856" />
+
+Retorna documento com hash: "9f86d0..."
+
+3. Estado reconhece:
+<img width="1001" height="122" alt="image" src="https://github.com/user-attachments/assets/c354a63f-0ba2-43f8-b00a-743d547cfc74" />
+
+Dados salvos:
+```json
+  {
+       "id": "receipt-456",
+       "amount": 10000000,
+       "contentHash": "e7f8a9...",     ← Hash próprio
+       "linkedDocId": "transfer-123",
+       "linkedDocHash": "9f86d0...",   ← Hash do Federal (Âncora)
+       "linkedChannel": "union",
+       "linkedDirection": "INCOMING"
+     }
+```
+
+4. Verificação
+
+  POST /api/anchors/verify (em qualquer API) -> compara:
+
+  Federal.contentHash === State.linkedDocHash
+   "9f86d0..." === "9f86d0..." -> VERIFIED
+
+### Modelo de Dados - Document
+
+```
+Document {
+  // Identificação
+  id: string                    // Único no canal
+  documentTypeId: string        // Tipo do documento
+  
+  // Organização e Canal
+  organizationId: string        // MSP criador
+  channelId: string            // Canal onde foi criado
+  
+  // Conteúdo
+  title: string                // Título descritivo
+  description: string          // Descrição opcional
+  amount: float64              // Valor monetário
+  currency: string             // Moeda (ex: BRL)
+  data: map[string]interface{} // Dados customizados do tipo
+  
+  // Hash Criptográfico
+  contentHash: string          // SHA-256 do conteúdo (MEU hash)
+  
+  // Cross-Channel Linking (Âncora)
+  linkedDocId: string          // ID do doc vinculado (OUTRO doc)
+  linkedChannel: string        // Canal do doc vinculado
+  linkedDocHash: string        // Hash do doc vinculado (ÂNCORA!)
+  linkedDirection: string      // "OUTGOING" | "INCOMING" | ""
+  
+  // Estado e Invalidação
+  status: string               // "ACTIVE" | "INVALIDATED"
+  invalidatedBy: string        // Quem invalidou
+  invalidatedAt: string        // Quando invalidou
+  invalidReason: string        // Por que invalidou
+  correctedByDoc: string       // Doc de correção
+  
+  // Auditoria
+  createdAt: string            // Timestamp criação
+  createdBy: string            // Usuário criador
+  updatedAt: string            // Timestamp última atualização
+  updatedBy: string            // Último usuário
+  history: []string            // IDs das transações
+}
+```
+
+### Segurança e Identidade
+
+```
+UnionMSP (Federal)                                    
+  ├─ CA Certificate (público)                          
+  ├─ Admin Certificate                                 
+  │  └─ Admin@union.gov.br                            
+  └─ Private Key (secreto) 🔒                          
+                                                         
+StateMSP (Estadual)                                   
+  ├─ CA Certificate (público)                          
+  ├─ Admin Certificate                                 
+  │  └─ Admin@state.gov.br                            
+  └─ Private Key (secreto)                          
+                                                         
+RegionMSP (Municipal)                                 
+  ├─ CA Certificate (público)                          
+  ├─ Admin Certificate                                 
+  │  └─ Admin@region.gov.br                           
+  └─ Private Key (secreto)
+```
+
+Fluxo de Autenticação:
+1. Backend assina transação com Private Key
+2. Peer recebe transação
+3. Peer verifica assinatura usando CA Certificate do MSP
+4. Se válida → transação aceita
+5. Documento registra createdBy do MSP
+
+Controle de Acesso:
+- UnionMSP escreve em union-channel
+- StateMSP escreve em state-channel
+- RegionMSP escreve em region-channel
+- Todos podem LER qualquer canal (transparência)
