@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 
+	apperrors "github.com/gov-spending/backend/internal/errors"
 	"github.com/gov-spending/backend/internal/models"
 	"github.com/gov-spending/backend/internal/services"
 )
@@ -36,6 +38,70 @@ func (h *Handler) validateChannel(c *gin.Context) (string, bool) {
 		return "", false
 	}
 	return channel, true
+}
+
+func (h *Handler) handleError(c *gin.Context, err error) {
+	appErr, ok := err.(*apperrors.AppError)
+	if !ok {
+		log.Error().
+			Err(err).
+			Str("path", c.Request.URL.Path).
+			Msg("Unstructured error occurred")
+
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Success: false,
+			Error:   "An internal error occurred",
+			Code:    string(apperrors.ErrCodeInternalError),
+		})
+		return
+	}
+
+	logEvent := log.Error().
+		Str("code", string(appErr.Code)).
+		Str("message", appErr.Message).
+		Str("path", c.Request.URL.Path).
+		Bool("retriable", appErr.Retriable).
+		Int("httpStatus", appErr.HTTPStatus)
+
+	if appErr.Err != nil {
+		logEvent = logEvent.Err(appErr.Err)
+	}
+
+	for key, value := range appErr.Context {
+		logEvent = logEvent.Interface(key, value)
+	}
+
+	logEvent.Msg("Request failed")
+
+	requestID, _ := c.Get("request_id")
+
+	response := models.ErrorResponse{
+		Success: false,
+		Error:   appErr.Message,
+		Code:    string(appErr.Code),
+	}
+
+	if appErr.Details != "" {
+		response.Details = appErr.Details
+	}
+
+	if reqID, ok := requestID.(string); ok {
+		response.RequestID = reqID
+	}
+
+	if len(appErr.Context) > 0 {
+		response.Context = make(map[string]any)
+		safeFields := []string{"channel", "operation", "step", "documentTypeId", "typeId"}
+		for _, field := range safeFields {
+			if val, exists := appErr.Context[field]; exists {
+				response.Context[field] = val
+			}
+		}
+		response.Context["retriable"] = appErr.Retriable
+	}
+
+
+	c.JSON(appErr.HTTPStatus, response)
 }
 
 // HealthCheck godoc
@@ -76,21 +142,14 @@ func (h *Handler) RegisterDocumentType(c *gin.Context) {
 
 	var req models.CreateDocumentTypeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "VALIDATION_ERROR",
-		})
+		validationErr := apperrors.NewValidationError("Invalid request body: " + err.Error())
+		h.handleError(c, validationErr)
 		return
 	}
 
 	result, err := h.fabricService.RegisterDocumentType(channel, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -118,11 +177,7 @@ func (h *Handler) GetDocumentType(c *gin.Context) {
 
 	result, err := h.fabricService.GetDocumentType(channel, typeID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "NOT_FOUND",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -147,11 +202,7 @@ func (h *Handler) ListDocumentTypes(c *gin.Context) {
 
 	result, err := h.fabricService.ListDocumentTypes(channel, orgID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -180,11 +231,7 @@ func (h *Handler) DeactivateDocumentType(c *gin.Context) {
 	typeID := c.Param("typeId")
 
 	if err := h.fabricService.DeactivateDocumentType(channel, typeID); err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -214,21 +261,14 @@ func (h *Handler) CreateDocument(c *gin.Context) {
 
 	var req models.CreateDocumentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "VALIDATION_ERROR",
-		})
+		validationErr := apperrors.NewValidationError("Invalid request body: " + err.Error())
+		h.handleError(c, validationErr)
 		return
 	}
 
 	result, err := h.fabricService.CreateDocument(channel, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -255,11 +295,7 @@ func (h *Handler) GetDocument(c *gin.Context) {
 
 	result, err := h.fabricService.GetDocument(channel, docID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "NOT_FOUND",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -293,11 +329,8 @@ func (h *Handler) QueryDocuments(c *gin.Context) {
 
 	var filter models.QueryFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "VALIDATION_ERROR",
-		})
+		validationErr := apperrors.NewValidationError("Invalid query parameters: " + err.Error())
+		h.handleError(c, validationErr)
 		return
 	}
 
@@ -307,11 +340,7 @@ func (h *Handler) QueryDocuments(c *gin.Context) {
 
 	result, err := h.fabricService.QueryDocuments(channel, &filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -343,20 +372,13 @@ func (h *Handler) InvalidateDocument(c *gin.Context) {
 
 	var req models.InvalidateDocumentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "VALIDATION_ERROR",
-		})
+		validationErr := apperrors.NewValidationError("Invalid request body: " + err.Error())
+		h.handleError(c, validationErr)
 		return
 	}
 
 	if err := h.fabricService.InvalidateDocument(channel, docID, &req); err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -386,11 +408,7 @@ func (h *Handler) GetDocumentHistory(c *gin.Context) {
 
 	result, err := h.fabricService.GetDocumentHistory(channel, docID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -420,11 +438,7 @@ func (h *Handler) GetLinkedDocuments(c *gin.Context) {
 
 	result, err := h.fabricService.GetLinkedDocuments(channel, docID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -445,38 +459,25 @@ func (h *Handler) GetLinkedDocuments(c *gin.Context) {
 func (h *Handler) InitiateTransfer(c *gin.Context) {
 	var req models.InitiateTransferRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "VALIDATION_ERROR",
-		})
+		validationErr := apperrors.NewValidationError("Invalid request body: " + err.Error())
+		h.handleError(c, validationErr)
 		return
 	}
 
 	if !h.validChannels[req.FromChannel] {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   "Invalid fromChannel: " + req.FromChannel,
-			Code:    "INVALID_CHANNEL",
-		})
+		channelErr := apperrors.NewInvalidChannelError(req.FromChannel)
+		h.handleError(c, channelErr)
 		return
 	}
 	if !h.validChannels[req.ToChannel] {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   "Invalid toChannel: " + req.ToChannel,
-			Code:    "INVALID_CHANNEL",
-		})
+		channelErr := apperrors.NewInvalidChannelError(req.ToChannel)
+		h.handleError(c, channelErr)
 		return
 	}
 
 	result, err := h.fabricService.InitiateTransfer(&req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -504,30 +505,20 @@ func (h *Handler) AcknowledgeTransfer(c *gin.Context) {
 
 	var req models.AcknowledgeTransferRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "VALIDATION_ERROR",
-		})
+		validationErr := apperrors.NewValidationError("Invalid request body: " + err.Error())
+		h.handleError(c, validationErr)
 		return
 	}
 
 	if !h.validChannels[req.SourceChannel] {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   "Invalid sourceChannel: " + req.SourceChannel,
-			Code:    "INVALID_CHANNEL",
-		})
+		channelErr := apperrors.NewInvalidChannelError(req.SourceChannel)
+		h.handleError(c, channelErr)
 		return
 	}
 
 	result, err := h.fabricService.AcknowledgeTransfer(channel, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 
@@ -547,29 +538,20 @@ func (h *Handler) AcknowledgeTransfer(c *gin.Context) {
 func (h *Handler) VerifyAnchor(c *gin.Context) {
 	var req models.VerifyAnchorRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "VALIDATION_ERROR",
-		})
+		validationErr := apperrors.NewValidationError("Invalid request body: " + err.Error())
+		h.handleError(c, validationErr)
 		return
 	}
 
 	// Validate channels
 	if !h.validChannels[req.SourceChannel] {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   "Invalid sourceChannel: " + req.SourceChannel,
-			Code:    "INVALID_CHANNEL",
-		})
+		channelErr := apperrors.NewInvalidChannelError(req.SourceChannel)
+		h.handleError(c, channelErr)
 		return
 	}
 	if !h.validChannels[req.TargetChannel] {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Success: false,
-			Error:   "Invalid targetChannel: " + req.TargetChannel,
-			Code:    "INVALID_CHANNEL",
-		})
+		channelErr := apperrors.NewInvalidChannelError(req.TargetChannel)
+		h.handleError(c, channelErr)
 		return
 	}
 
@@ -580,11 +562,7 @@ func (h *Handler) VerifyAnchor(c *gin.Context) {
 		req.TargetDocID,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Success: false,
-			Error:   err.Error(),
-			Code:    "BLOCKCHAIN_ERROR",
-		})
+		h.handleError(c, err)
 		return
 	}
 

@@ -128,8 +128,9 @@ func setupRouter(cfg *config.Config, h *handlers.Handler) *gin.Engine {
 
 	router := gin.New()
 
+	router.Use(middleware.RequestID())
 	router.Use(middleware.Recovery())
-  router.Use(middleware.Logger())
+	router.Use(middleware.Logger())
 	router.Use(middleware.CORS())
 
 	router.GET("/health", h.HealthCheck)
