@@ -72,8 +72,13 @@ func (gm *GatewayManager) createConnection(channelCfg config.ChannelConfig) (*Ch
 	networkPath := gm.config.Fabric.NetworkPath
 	domain := getDomain(channelCfg.CryptoPath)
 
+	userName := channelCfg.UserName
+	if userName == "" {
+		userName = "Admin"
+	}
+
 	certPath := filepath.Join(networkPath, "crypto-config", channelCfg.CryptoPath,
-		fmt.Sprintf("users/Admin@%s/msp/signcerts", domain))
+		fmt.Sprintf("users/%s@%s/msp/signcerts", userName, domain))
 	cert, err := loadCertificate(certPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load certificate from %s: %w", certPath, err)
@@ -85,7 +90,7 @@ func (gm *GatewayManager) createConnection(channelCfg config.ChannelConfig) (*Ch
 	}
 
 	keyPath := filepath.Join(networkPath, "crypto-config", channelCfg.CryptoPath,
-		fmt.Sprintf("users/Admin@%s/msp/keystore", domain))
+		fmt.Sprintf("users/%s@%s/msp/keystore", userName, domain))
 	privateKey, err := loadPrivateKey(keyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load private key from %s: %w", keyPath, err)

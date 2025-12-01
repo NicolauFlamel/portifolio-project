@@ -37,8 +37,6 @@ const (
 	StatusInvalidated DocumentStatus = "INVALIDATED"
 )
 
-// Document represents a spending document (simplified - no complex Anchor struct)
-// All fields are always present (Fabric contract schema requirement)
 type Document struct {
 	ID             string                 `json:"id"`
 	DocumentTypeID string                 `json:"documentTypeId"`
@@ -152,24 +150,25 @@ type TransferResult struct {
 
 // AnchorVerification result of verifying cross-channel link
 type AnchorVerification struct {
-	SourceDocID    string  `json:"sourceDocId"`
-	SourceChannel  string  `json:"sourceChannel"`
-	SourceHash     string  `json:"sourceHash"`
-	SourceAmount   float64 `json:"sourceAmount"`
-	SourceCurrency string  `json:"sourceCurrency"`
+	SourceDocID       string  `json:"sourceDocId"`
+	SourceChannel     string  `json:"sourceChannel"`
+	SourceContentHash string  `json:"sourceContentHash"` // Hash of the source document's content
+	SourceAmount      float64 `json:"sourceAmount"`
+	SourceCurrency    string  `json:"sourceCurrency"`
 
-	TargetDocID    string  `json:"targetDocId"`
-	TargetChannel  string  `json:"targetChannel"`
-	TargetHash     string  `json:"targetHash"`
-	TargetAmount   float64 `json:"targetAmount"`
-	TargetCurrency string  `json:"targetCurrency"`
+	TargetDocID       string  `json:"targetDocId"`
+	TargetChannel     string  `json:"targetChannel"`
+	TargetContentHash string  `json:"targetContentHash"`   // Hash of the target document's content (for reference)
+	TargetLinkedHash  string  `json:"targetLinkedDocHash"` // The anchor: hash stored in target doc pointing to source
+	TargetAmount      float64 `json:"targetAmount"`
+	TargetCurrency    string  `json:"targetCurrency"`
 
-	HashMatch      bool     `json:"hashMatch"`
-	IDMatch        bool     `json:"idMatch"`
-	ChannelMatch   bool     `json:"channelMatch"`
-	AmountMatch    bool     `json:"amountMatch"`
-	IsValid        bool     `json:"isValid"`
-	Status         string   `json:"status"` // "VERIFIED" or "MISMATCH"
+	HashMatch      bool     `json:"hashMatch"`      // true if targetLinkedDocHash == sourceContentHash
+	IDMatch        bool     `json:"idMatch"`        // true if target.linkedDocId == source.id
+	ChannelMatch   bool     `json:"channelMatch"`   // true if target.linkedChannel == source.channel
+	AmountMatch    bool     `json:"amountMatch"`    // true if target.amount == source.amount
+	IsValid        bool     `json:"isValid"`        // true if all matches are true
+	Status         string   `json:"status"`         // "VERIFIED" or "MISMATCH"
 	MismatchReason []string `json:"mismatchReason,omitempty"`
 }
 

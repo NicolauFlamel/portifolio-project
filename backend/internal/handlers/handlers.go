@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
+	"github.com/gov-spending/backend/internal/config"
 	apperrors "github.com/gov-spending/backend/internal/errors"
 	"github.com/gov-spending/backend/internal/models"
 	"github.com/gov-spending/backend/internal/services"
@@ -14,9 +15,11 @@ import (
 type Handler struct {
 	fabricService *services.FabricService
 	validChannels map[string]bool
+	config        *config.Config
 }
 
-func NewHandler(fabricService *services.FabricService, validChannels []string) *Handler {
+func NewHandler(fabricService *services.FabricService, cfg *config.Config) *Handler {
+	validChannels := cfg.ValidChannels()
 	channelMap := make(map[string]bool)
 	for _, ch := range validChannels {
 		channelMap[ch] = true
@@ -24,6 +27,7 @@ func NewHandler(fabricService *services.FabricService, validChannels []string) *
 	return &Handler{
 		fabricService: fabricService,
 		validChannels: channelMap,
+		config:        cfg,
 	}
 }
 
@@ -38,6 +42,18 @@ func (h *Handler) validateChannel(c *gin.Context) (string, bool) {
 		return "", false
 	}
 	return channel, true
+}
+
+func (h *Handler) validateWriteAccess(c *gin.Context, channel string) bool {
+	if !h.config.IsAdminChannel(channel) {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{
+			Success: false,
+			Error:   "Write access denied: this instance does not have admin privileges on channel " + channel,
+			Code:    "WRITE_ACCESS_DENIED",
+		})
+		return false
+	}
+	return true
 }
 
 func (h *Handler) handleError(c *gin.Context, err error) {
@@ -118,6 +134,34 @@ func (h *Handler) HealthCheck(c *gin.Context) {
 	})
 }
 
+// ConfigInfo godoc
+// @Summary      Configuration info
+// @Description  Show writable channels for this backend instance
+// @Tags         Health
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Router       /config [get]
+func (h *Handler) ConfigInfo(c *gin.Context) {
+	writableChannels := h.config.GetWritableChannels()
+	allChannels := h.config.ValidChannels()
+
+	channelDetails := make(map[string]interface{})
+	for _, ch := range allChannels {
+		cfg, _ := h.config.GetChannelConfig(ch)
+		channelDetails[ch] = gin.H{
+			"userName":   cfg.UserName,
+			"isAdmin":    h.config.IsAdminChannel(ch),
+			"channelName": cfg.Name,
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"writableChannels": writableChannels,
+		"allChannels":      allChannels,
+		"channelDetails":   channelDetails,
+	})
+}
+
 // =============================================================================
 // Document Types
 // =============================================================================
@@ -137,6 +181,11 @@ func (h *Handler) HealthCheck(c *gin.Context) {
 func (h *Handler) RegisterDocumentType(c *gin.Context) {
 	channel, ok := h.validateChannel(c)
 	if !ok {
+		return
+	}
+
+	// Check write access
+	if !h.validateWriteAccess(c, channel) {
 		return
 	}
 
@@ -228,6 +277,11 @@ func (h *Handler) DeactivateDocumentType(c *gin.Context) {
 		return
 	}
 
+	// Check write access
+	if !h.validateWriteAccess(c, channel) {
+		return
+	}
+
 	typeID := c.Param("typeId")
 
 	if err := h.fabricService.DeactivateDocumentType(channel, typeID); err != nil {
@@ -256,6 +310,11 @@ func (h *Handler) DeactivateDocumentType(c *gin.Context) {
 func (h *Handler) CreateDocument(c *gin.Context) {
 	channel, ok := h.validateChannel(c)
 	if !ok {
+		return
+	}
+
+	// Check write access
+	if !h.validateWriteAccess(c, channel) {
 		return
 	}
 
@@ -368,6 +427,11 @@ func (h *Handler) InvalidateDocument(c *gin.Context) {
 		return
 	}
 
+	// Check write access
+	if !h.validateWriteAccess(c, channel) {
+		return
+	}
+
 	docID := c.Param("docId")
 
 	var req models.InvalidateDocumentRequest
@@ -475,6 +539,16 @@ func (h *Handler) InitiateTransfer(c *gin.Context) {
 		return
 	}
 
+	// Check write access on FromChannel (where the transfer originates)
+	if !h.config.IsAdminChannel(req.FromChannel) {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{
+			Success: false,
+			Error:   "Write access denied: this instance does not have admin privileges on channel " + req.FromChannel,
+			Code:    "WRITE_ACCESS_DENIED",
+		})
+		return
+	}
+
 	result, err := h.fabricService.InitiateTransfer(&req)
 	if err != nil {
 		h.handleError(c, err)
@@ -500,6 +574,11 @@ func (h *Handler) InitiateTransfer(c *gin.Context) {
 func (h *Handler) AcknowledgeTransfer(c *gin.Context) {
 	channel, ok := h.validateChannel(c)
 	if !ok {
+		return
+	}
+
+	// Check write access
+	if !h.validateWriteAccess(c, channel) {
 		return
 	}
 

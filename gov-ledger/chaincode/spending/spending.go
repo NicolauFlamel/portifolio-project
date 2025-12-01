@@ -54,7 +54,7 @@ type Document struct {
 	LinkedDocID     string `json:"linkedDocId"`
 	LinkedChannel   string `json:"linkedChannel"`
 	LinkedDocHash   string `json:"linkedDocHash"`
-	LinkedDirection string `json:"linkedDirection"` 
+	LinkedDirection string `json:"linkedDirection"`
 
 	InvalidatedBy  string `json:"invalidatedBy"`
 	InvalidatedAt  string `json:"invalidatedAt"`
@@ -104,7 +104,38 @@ func (s *SpendingContract) RegisterDocumentType(ctx contractapi.TransactionConte
 		return err
 	}
 	if exists {
-		return fmt.Errorf("document type %s already exists", id)
+		existing, err := s.GetDocumentType(ctx, id)
+		if err != nil {
+			return err
+		}
+		if existing.IsActive {
+			return fmt.Errorf("document type %s already exists", id)
+		}
+
+		orgID, err := s.getClientOrg(ctx)
+		if err != nil {
+			return err
+		}
+		if existing.OrganizationID != orgID {
+			return fmt.Errorf("only the owning organization can reactivate a document type")
+		}
+
+		var requiredFields, optionalFields []string
+		if err := json.Unmarshal([]byte(requiredFieldsJSON), &requiredFields); err != nil {
+			return fmt.Errorf("invalid required fields JSON: %v", err)
+		}
+		if err := json.Unmarshal([]byte(optionalFieldsJSON), &optionalFields); err != nil {
+			return fmt.Errorf("invalid optional fields JSON: %v", err)
+		}
+
+		if !equalStringSlices(existing.RequiredFields, requiredFields) ||
+			!equalStringSlices(existing.OptionalFields, optionalFields) ||
+			existing.Name != name || existing.Description != description {
+			return fmt.Errorf("cannot reactivate document type %s: schema does not match existing definition", id)
+		}
+
+		existing.IsActive = true
+		return s.putDocumentType(ctx, existing)
 	}
 
 	clientID, err := s.getClientIdentity(ctx)
@@ -169,7 +200,7 @@ func (s *SpendingContract) ListDocumentTypes(ctx contractapi.TransactionContextI
 	}
 	defer iterator.Close()
 
-	var types []*DocumentType
+	types := []*DocumentType{}
 	for iterator.HasNext() {
 		result, err := iterator.Next()
 		if err != nil {
@@ -255,17 +286,17 @@ func (s *SpendingContract) CreateDocument(ctx contractapi.TransactionContextInte
 	txID := ctx.GetStub().GetTxID()
 
 	doc := &Document{
-		ID:              id,
-		DocumentTypeID:  documentTypeID,
-		OrganizationID:  orgID,
-		ChannelID:       channelID,
-		Status:          StatusActive,
-		Title:           title,
-		Description:     description,
-		Amount:          amount,
-		Currency:        currency,
-		Data:            data,
-		ContentHash:     contentHash,
+		ID:             id,
+		DocumentTypeID: documentTypeID,
+		OrganizationID: orgID,
+		ChannelID:      channelID,
+		Status:         StatusActive,
+		Title:          title,
+		Description:    description,
+		Amount:         amount,
+		Currency:       currency,
+		Data:           data,
+		ContentHash:    contentHash,
 		// Cross-channel linking fields - initialize to provided values or empty strings
 		LinkedDocID:     linkedDocID,
 		LinkedChannel:   linkedChannel,
@@ -277,11 +308,11 @@ func (s *SpendingContract) CreateDocument(ctx contractapi.TransactionContextInte
 		InvalidReason:  "",
 		CorrectedByDoc: "",
 		// Audit trail
-		CreatedAt:       now(),
-		CreatedBy:       clientID,
-		UpdatedAt:       now(),
-		UpdatedBy:       clientID,
-		History:         []string{txID},
+		CreatedAt: now(),
+		CreatedBy: clientID,
+		UpdatedAt: now(),
+		UpdatedBy: clientID,
+		History:   []string{txID},
 	}
 
 	return s.putDocument(ctx, doc)
@@ -341,7 +372,7 @@ func (s *SpendingContract) QueryDocuments(ctx contractapi.TransactionContextInte
 	}
 	defer resultsIterator.Close()
 
-	var documents []*Document
+	documents := []*Document{}
 	for resultsIterator.HasNext() {
 		result, err := resultsIterator.Next()
 		if err != nil {
@@ -556,6 +587,7 @@ func (s *SpendingContract) getClientOrg(ctx contractapi.TransactionContextInterf
 	return mspID, nil
 }
 
+
 func (s *SpendingContract) validateRequiredFields(required []string, data map[string]interface{}) error {
 	for _, field := range required {
 		if _, ok := data[field]; !ok {
@@ -574,11 +606,14 @@ func (s *SpendingContract) calculateHash(data map[string]interface{}) string {
 func (s *SpendingContract) buildQuery(filter QueryFilter) string {
 	selector := make(map[string]interface{})
 
-	if filter.OrganizationID != "" {
-		selector["organizationId"] = filter.OrganizationID
-	}
 	if filter.DocumentTypeID != "" {
 		selector["documentTypeId"] = filter.DocumentTypeID
+	} else {
+		selector["documentTypeId"] = map[string]interface{}{"$ne": ""}
+	}
+
+	if filter.OrganizationID != "" {
+		selector["organizationId"] = filter.OrganizationID
 	}
 	if filter.Status != "" {
 		selector["status"] = filter.Status
@@ -623,6 +658,23 @@ func (s *SpendingContract) buildQuery(filter QueryFilter) string {
 
 	queryJSON, _ := json.Marshal(query)
 	return string(queryJSON)
+}
+
+func equalStringSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	counts := make(map[string]int, len(a))
+	for _, v := range a {
+		counts[v]++
+	}
+	for _, v := range b {
+		if counts[v] == 0 {
+			return false
+		}
+		counts[v]--
+	}
+	return true
 }
 
 // =============================================================================

@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # Backend instance for Union organization
+  backend-union:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend-union
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - GIN_MODE=release
+      - FABRIC_NETWORK_PATH=/network
+      - LOG_LEVEL=info
+    volumes:
+      - ../gov-ledger/network:/network:ro
+      - ./config-union.yaml:/app/config.yaml:ro
+    networks:
+      - gov-spending-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend instance for State organization
+  backend-state:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend-state
+    ports:
+      - "3001:3000"
+    environment:
+      - PORT=3000
+      - GIN_MODE=release
+      - FABRIC_NETWORK_PATH=/network
+      - LOG_LEVEL=info
+    volumes:
+      - ../gov-ledger/network:/network:ro
+      - ./config-state.yaml:/app/config.yaml:ro
+    networks:
+      - gov-spending-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend instance for Region organization
+  backend-region:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend-region
+    ports:
+      - "3002:3000"
+    environment:
+      - PORT=3000
+      - GIN_MODE=release
+      - FABRIC_NETWORK_PATH=/network
+      - LOG_LEVEL=info
+    volumes:
+      - ../gov-ledger/network:/network:ro
+      - ./config-region.yaml:/app/config.yaml:ro
+    networks:
+      - gov-spending-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  gov-spending-network:
+    external: true
+    name: gov-spending-network

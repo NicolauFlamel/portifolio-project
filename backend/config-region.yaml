@@ -1,38 +1,39 @@
-# Government Spending Blockchain API Configuration
+# Region Backend Instance Configuration
+# Uses Admin@region.gov.br for blockchain operations
 
 server:
   port: "3000"
-  mode: "debug"  
+  mode: "release"
 
 fabric:
-  network_path: "../gov-ledger/network"
+  network_path: "/network"
   chaincode_name: "spending"
   channels:
     union:
       name: "union-channel"
       msp_id: "UnionMSP"
-      peer_endpoint: "localhost:7051"
+      peer_endpoint: "peer0.union.gov.br:7051"
       peer_host_alias: "peer0.union.gov.br"
       crypto_path: "peerOrganizations/union.gov.br"
       tls_enabled: true
-      user_name: "Admin"
+      user_name: "User1"
     state:
       name: "state-channel"
       msp_id: "StateMSP"
-      peer_endpoint: "localhost:9051"
+      peer_endpoint: "peer0.state.gov.br:9051"
       peer_host_alias: "peer0.state.gov.br"
       crypto_path: "peerOrganizations/state.gov.br"
       tls_enabled: true
-      user_name: "Admin"
+      user_name: "User1"
     region:
       name: "region-channel"
       msp_id: "RegionMSP"
-      peer_endpoint: "localhost:11051"
+      peer_endpoint: "peer0.region.gov.br:11051"
       peer_host_alias: "peer0.region.gov.br"
       crypto_path: "peerOrganizations/region.gov.br"
       tls_enabled: true
       user_name: "Admin"
 
 logging:
-  level: "debug"  
-  format: "console"  
+  level: "info"
+  format: "console"

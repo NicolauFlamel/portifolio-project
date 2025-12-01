@@ -11,8 +11,8 @@ import (
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	
-	_ "github.com/gov-spending/backend/docs"
+
+	"github.com/gov-spending/backend/docs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -25,13 +25,11 @@ import (
 	"github.com/gov-spending/backend/pkg/fabric"
 )
 
-
 // @title           Government Spending Blockchain API
 // @version         1.0
 // @description     API for managing government spending documents across Federal, State, and Municipal channels
 // @description     Uses Hyperledger Fabric blockchain for immutable, transparent spending records
 
-// @host      localhost:3000
 // @BasePath  /
 
 // @tag.name Health
@@ -48,7 +46,6 @@ import (
 
 // @tag.name Verification
 // @tag.description Verify cross-channel links
-
 
 func main() {
 	configPath := flag.String("config", "", "Path to configuration file")
@@ -69,7 +66,13 @@ func main() {
 
 	fabricService := services.NewFabricService(gatewayManager)
 
-	handler := handlers.NewHandler(fabricService, cfg.ValidChannels())
+	handler := handlers.NewHandler(fabricService, cfg)
+
+	if swaggerHost := os.Getenv("SWAGGER_HOST"); swaggerHost != "" {
+		docs.SwaggerInfo.Host = swaggerHost
+	} else {
+		docs.SwaggerInfo.Host = ""
+	}
 
 	router := setupRouter(cfg, handler)
 
@@ -134,6 +137,7 @@ func setupRouter(cfg *config.Config, h *handlers.Handler) *gin.Engine {
 	router.Use(middleware.CORS())
 
 	router.GET("/health", h.HealthCheck)
+	router.GET("/config", h.ConfigInfo)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

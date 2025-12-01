@@ -503,7 +503,6 @@ func (s *FabricService) AcknowledgeTransfer(targetChannelKey string, req *models
 	}
 
 	// Step 3: Update source document with link to acknowledgment
-	// Note: This is a best-effort operation - we warn but don't fail the transfer
 	_, err = sourceContract.SubmitTransaction(
 		"UpdateDocumentLink",
 		req.SourceDocID,
@@ -512,7 +511,6 @@ func (s *FabricService) AcknowledgeTransfer(targetChannelKey string, req *models
 		ackDoc.ContentHash,
 	)
 	if err != nil {
-		// Create a structured error but only log it as a warning
 		linkErr := errors.ParseBlockchainError(err, "update source document link").
 			WithContext("sourceDocId", req.SourceDocID).
 			WithContext("ackId", ackID).
@@ -584,16 +582,17 @@ func (s *FabricService) VerifyAnchor(sourceChannel, sourceDocID, targetChannel, 
 	}
 
 	verification := &models.AnchorVerification{
-		SourceDocID:      sourceDocID,
-		SourceChannel:    sourceChannel,
-		SourceHash:       sourceDoc.ContentHash,
-		SourceAmount:     sourceDoc.Amount,
-		SourceCurrency:   sourceDoc.Currency,
-		TargetDocID:      targetDocID,
-		TargetChannel:    targetChannel,
-		TargetHash:       targetDoc.ContentHash,
-		TargetAmount:     targetDoc.Amount,
-		TargetCurrency:   targetDoc.Currency,
+		SourceDocID:       sourceDocID,
+		SourceChannel:     sourceChannel,
+		SourceContentHash: sourceDoc.ContentHash,
+		SourceAmount:      sourceDoc.Amount,
+		SourceCurrency:    sourceDoc.Currency,
+		TargetDocID:       targetDocID,
+		TargetChannel:     targetChannel,
+		TargetContentHash: targetDoc.ContentHash,
+		TargetLinkedHash:  targetDoc.LinkedDocHash, 
+		TargetAmount:      targetDoc.Amount,
+		TargetCurrency:    targetDoc.Currency,
 	}
 
 	verification.HashMatch = (targetDoc.LinkedDocHash == sourceDoc.ContentHash)
@@ -630,7 +629,6 @@ func (s *FabricService) GetLinkedDocuments(channelKey, docID string) (*models.Li
 	// Get the primary document
 	doc, err := s.GetDocument(channelKey, docID)
 	if err != nil {
-		// Error is already structured from GetDocument
 		return nil, err
 	}
 
@@ -638,11 +636,9 @@ func (s *FabricService) GetLinkedDocuments(channelKey, docID string) (*models.Li
 		Document: doc,
 	}
 
-	// Try to fetch linked document if it exists
 	if doc.LinkedDocID != "" && doc.LinkedChannel != "" {
 		linkedDoc, err := s.GetDocument(doc.LinkedChannel, doc.LinkedDocID)
 		if err != nil {
-			// Create a structured error for the linked document fetch failure
 			linkedErr := errors.ParseBlockchainError(err, "get linked document").
 				WithContext("docId", docID).
 				WithContext("linkedDocId", doc.LinkedDocID).
@@ -657,14 +653,12 @@ func (s *FabricService) GetLinkedDocuments(channelKey, docID string) (*models.Li
 				Str("errorCode", string(linkedErr.Code)).
 				Msg("Failed to fetch linked document")
 
-			// Don't return error - just mark link as unavailable
 			result.LinkedDocument = nil
 			result.LinkVerified = false
 		} else {
 			result.LinkedDocument = linkedDoc
 			result.LinkVerified = (linkedDoc.ContentHash == doc.LinkedDocHash)
 
-			// Log if hashes don't match
 			if !result.LinkVerified {
 				log.Warn().
 					Str("docId", docID).
