@@ -93,13 +93,16 @@ Para os testes, uma única instância do backend é o suficiente para simular os
 # Do root, acesse a pasta backend
 cd backend
 # Execute o backend
-go run cmd/api/main.go
+docker-compose build
+docker-compose up -d
 ```
 
 Verifique se o backend foi corretamente instanciado:
 
 ```bash
 curl http://localhost:3000/health
+curl http://localhost:3001/health
+curl http://localhost:3002/health
 ```
 
 ### Testando a Aplicação
@@ -109,16 +112,16 @@ Você pode utilizar o script para testar cenários:
 ```
 cd gov-ledger
 chmod +x scripts/test-scenarios.sh
-scripts/test-scenarios.sh
+scripts/test-scenarios.sh all
 # O script executará 8 cenários de teste:
 # 1. Criar tipos de documento
-# 2. Criar documentos internos (contractor, equipment, utilities)
-# 3. Transferência Federal → Estadual
-# 4. Transferência Estadual → Municipal
-# 5. Verificar âncoras cross-channel
-# 6. Consultar documentos
-# 7. Invalidar documento
-# 8. Consultar histórico
+# 2. Transferência Federal → Estadual
+# 3. Transferência Estadual → Regional
+# 4. Transferência Regional -> Estadual
+# 5. Transferência Estadual -> Federal
+# 6. Invalidação e correção de documento
+# 7. Gastos internos (sem transferência cross chain)
+# 8. Consultar documentos
 ```
 
 Ou acessar o swagger disponível em http://localhost:3000/swagger/index.html.
