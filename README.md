@@ -1,3 +1,7 @@
+# LINK DO VÍDEO
+
+https://youtu.be/O1u5L-fERjo
+
 # BlockSpend Network
 
 Transparência • Auditoria • Rastreabilidade • Imutabilidade
