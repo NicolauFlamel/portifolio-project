@@ -710,4 +710,7 @@ Controle de Acesso:
 - Docker Documentation: https://docs.docker.com/
 - OpenAPI Specification: https://swagger.io/specification/
 
+## Banner de Apresentação
+
+<img width="3179" height="4494" alt="TCC_Banner(1)" src="https://github.com/user-attachments/assets/355fc8e1-22b1-44d0-aa67-2abc777b1543" />
 
